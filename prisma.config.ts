@@ -11,7 +11,5 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["DATABASE_URL"],
-    // DIRECT_URL usa el session-mode pooler para migraciones (no pgBouncer)
-    directUrl: process.env["DIRECT_URL"],
   },
 });
