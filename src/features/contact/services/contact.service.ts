@@ -7,14 +7,24 @@ export interface ContactSubmissionResult {
 
 export class ContactService {
   /**
-   * Envía los datos del formulario de contacto a nuestro servicio simulado.
-   * En futuros sprints, esto guardará en Supabase y enviará una notificación por Resend.
+   * Envía los datos del formulario de contacto a la API Route /api/contact,
+   * que los persiste en la tabla `contacts` de Supabase.
    */
   static async submitForm(data: ContactFormData): Promise<ContactSubmissionResult> {
-    // Simulamos latencia de red
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const response = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
 
-    console.log("Envío exitoso de formulario de contacto (Simulación):", data);
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      return {
+        success: false,
+        message: result.message ?? "Error al enviar el formulario. Intenta nuevamente.",
+      };
+    }
 
     return {
       success: true,
