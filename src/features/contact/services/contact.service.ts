@@ -1,34 +1,118 @@
-import { ContactFormData } from "../validations/contact.schema";
+import crypto from "crypto";
+import { supabase } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
+import { AnalyticsService } from "@/lib/analytics/analytics.service";
+import { NotificationService } from "@/lib/notifications/notification.service";
+import type { LeadPayload } from "@/lib/notifications/channels/notification-channel.interface";
+import type { ContactFormData } from "../validations/contact.schema";
 
 export interface ContactSubmissionResult {
   success: boolean;
   message: string;
 }
 
+export interface ClientMetadata {
+  ip?: string;
+  userAgent?: string;
+  referrer?: string;
+}
+
 export class ContactService {
   /**
-   * Envía los datos del formulario de contacto a la API Route /api/contact,
-   * que los persiste en la tabla `contacts` de Supabase.
+   * Persiste el lead en Supabase y dispara las notificaciones.
+   *
+   * Flujo:
+   * 1. Generar id (UUID) y created_at en servidor
+   * 2. INSERT (sin SELECT para evitar violación de políticas RLS de lectura en rol anon)
+   * 3. Analytics: contact_form_submitted
+   * 4. await NotificationService.notifyNewLead() — awaited, serverless-safe
+   * 5. Analytics: confirmation_email_sent (con resultado del envío)
+   *
+   * Si las notificaciones fallan, el lead YA está guardado.
+   * No re-throw: el cliente recibe siempre la confirmación en pantalla.
    */
-  static async submitForm(data: ContactFormData): Promise<ContactSubmissionResult> {
-    const response = await fetch("/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+  static async saveLead(
+    data: ContactFormData,
+    metadata?: ClientMetadata
+  ): Promise<ContactSubmissionResult> {
+    const leadId = crypto.randomUUID();
+    const createdAt = new Date();
+
+    // ── 1. Persistir ──────────────────────────────────────────────────────────
+    const { error } = await supabase
+      .from("contacts")
+      .insert({
+        id:         leadId,
+        name:       data.name,
+        email:      data.email,
+        phone:      data.phone || null,
+        company:    data.company,
+        service:    data.serviceOfInterest,
+        message:    data.message,
+        origin:     "website",
+        ip_address: metadata?.ip || null,
+        user_agent: metadata?.userAgent || null,
+        referrer:   metadata?.referrer || null,
+        created_at: createdAt.toISOString(),
+      });
+
+    if (error) {
+      throw new Error(error.message ?? "Insert failed");
+    }
+
+    // Log estructurado — facilita trazar la secuencia completa de un lead en Sentry/Axiom
+    logger.info("Lead created", {
+      leadId,
+      origin:  "website",
+      service: data.serviceOfInterest,
+      company: data.company,
     });
 
-    const result = await response.json();
+    // ── 2. Analytics: lead guardado ───────────────────────────────────────────
+    AnalyticsService.trackEvent("contact_form_submitted", {
+      leadId,
+      service: data.serviceOfInterest,
+      company: data.company,
+    });
 
-    if (!response.ok || !result.success) {
-      return {
-        success: false,
-        message: result.message ?? "Error al enviar el formulario. Intenta nuevamente.",
-      };
+    // ── 3. Notificaciones (awaited — serverless-safe) ─────────────────────────
+    const leadPayload: LeadPayload = {
+      id:                leadId,
+      name:              data.name,
+      email:             data.email,
+      phone:             data.phone,
+      company:           data.company,
+      serviceOfInterest: data.serviceOfInterest,
+      message:           data.message,
+      createdAt,
+      status:            "new",
+      origin:            "website",
+      metadata: {
+        ip:        metadata?.ip,
+        userAgent: metadata?.userAgent,
+        referrer:  metadata?.referrer,
+      },
+    };
+
+    try {
+      const summary = await NotificationService.notifyNewLead(leadPayload);
+
+      // ── 4. Analytics: resultado del envío ──────────────────────────────────
+      AnalyticsService.trackEvent("confirmation_email_sent", {
+        leadId,
+        sent:    summary.sent,
+        failed:  summary.failed,
+        success: summary.success,
+      });
+    } catch (error) {
+      // Lead guardado. Solo fallaron las notificaciones — no bloquear al usuario.
+      logger.error("Notification error after lead save", error, { leadId });
     }
 
     return {
       success: true,
-      message: "¡Gracias! Tu consulta ha sido recibida correctamente. Nuestro equipo se pondrá en contacto contigo en menos de 24 horas.",
+      message:
+        "¡Gracias! Tu consulta ha sido recibida correctamente. Nuestro equipo se pondrá en contacto contigo en menos de 24 horas.",
     };
   }
 }

@@ -1,5 +1,13 @@
+import { logger } from "@/lib/logger";
+import { ConsoleAnalyticsProvider } from "./providers/console.provider";
+// Sprint 2.5: import { PostHogProvider } from "./providers/posthog.provider";
+
+// Cambiar de Console → PostHog en Sprint 2.5: solo esta línea
+const provider = new ConsoleAnalyticsProvider();
+
 export type AnalyticsEvent =
   | "contact_form_submitted"
+  | "confirmation_email_sent"
   | "cta_clicked"
   | "calendly_clicked"
   | "whatsapp_clicked"
@@ -12,35 +20,33 @@ export interface EventProperties {
   location?: string;
   label?: string;
   type?: string;
+  leadId?: string;
+  sent?: number;
+  failed?: number;
+  success?: boolean;
   [key: string]: string | number | boolean | undefined;
 }
 
+/**
+ * Servicio de analytics desacoplado del proveedor concreto.
+ * Sprint 2.5: reemplazar ConsoleAnalyticsProvider por PostHogProvider sin
+ * tocar ningún call site fuera de este archivo.
+ */
 export class AnalyticsService {
-  /**
-   * Registra un evento de negocio tipado de forma consistente.
-   * Esto prepara la infraestructura para integrar PostHog, Google Analytics y Meta Pixel más adelante.
-   */
   static trackEvent(event: AnalyticsEvent, properties?: EventProperties): void {
-    console.log(`[Analytics Event] => ${event}`, properties);
-    
-    // Aquí se conectarán los proveedores en el Sprint 2:
-    // if (typeof window !== "undefined") {
-    //   window.gtag?.("event", event, properties);
-    //   window.posthog?.capture(event, properties);
-    //   window.fbq?.("trackCustom", event, properties);
-    // }
+    try {
+      provider.track(event, properties);
+    } catch (error) {
+      logger.error("Analytics track failed", error, { event });
+    }
   }
 
-  /**
-   * Registra una vista de página.
-   */
   static trackPageview(url: string): void {
-    console.log(`[Analytics Pageview] => ${url}`);
-    
-    // Aquí se conectará la analítica de rutas en el Sprint 2:
-    // if (typeof window !== "undefined") {
-    //   window.gtag?.("config", process.env.NEXT_PUBLIC_GA_ID, { page_path: url });
-    //   window.posthog?.capture("$pageview", { $current_url: url });
-    // }
+    try {
+      provider.track("$pageview", { url });
+    } catch (error) {
+      logger.error("Analytics pageview failed", error, { url });
+    }
   }
 }
+

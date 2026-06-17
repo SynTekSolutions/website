@@ -24,6 +24,10 @@ export const contactSchema = z.object({
     .string()
     .min(10, { message: "Los detalles del proyecto deben tener al menos 10 caracteres." })
     .max(1000, { message: "Los detalles del proyecto no deben exceder los 1000 caracteres." }),
+  // Campo honeypot anti-spam: debe llegar vacío.
+  // Los bots suelen rellenar todos los campos — si tiene valor, es un bot.
+  _honey: z.string().optional(),
 });
 
 export type ContactFormData = z.infer<typeof contactSchema>;
+

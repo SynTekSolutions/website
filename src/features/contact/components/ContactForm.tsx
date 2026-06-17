@@ -7,7 +7,7 @@ import { CheckCircle2, AlertCircle } from "lucide-react";
 import { SERVICES } from "@/content/services";
 import { Button } from "@/components/ui/Button";
 import { contactSchema, ContactFormData } from "../validations/contact.schema";
-import { ContactService } from "../services/contact.service";
+import { submitContactForm } from "../services/contact.client";
 import { AnalyticsService } from "@/lib/analytics/analytics.service";
 import { COMPANY } from "@/config/company";
 
@@ -34,7 +34,7 @@ export const ContactForm = () => {
   const onSubmit = async (data: ContactFormData) => {
     setErrorMessage(null);
     try {
-      const response = await ContactService.submitForm(data);
+      const response = await submitContactForm(data);
       if (response.success) {
         setIsSuccess(true);
         AnalyticsService.trackEvent("contact_form_submitted", {
