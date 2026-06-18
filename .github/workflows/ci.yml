@@ -91,7 +91,7 @@ jobs:
 
       - name: Build Next.js Application
         run: |
-          source scripts/load-ci-env.sh
+          source ./scripts/load-ci-env.sh
           npm run build
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
@@ -154,7 +154,7 @@ jobs:
 
       - name: Run E2E Tests
         run: |
-          source scripts/load-ci-env.sh
+          source ./scripts/load-ci-env.sh
           npm run test:e2e
         env:
           CI: true
