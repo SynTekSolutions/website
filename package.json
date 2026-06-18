@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "verify-audit": "tsx scripts/verify-audit.ts",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
