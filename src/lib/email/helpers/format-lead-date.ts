@@ -1,10 +1,11 @@
 /**
- * Helper centralizado de formato de fechas para email templates.
+ * Helper centralizado de formato de fechas para email templates y componentes.
  *
- * Los templates NUNCA llaman toLocaleDateString() directamente.
+ * Los templates y componentes NUNCA llaman toLocaleDateString() directamente.
  * Si el formato cambia, o se añade un idioma (en-US), solo cambia este helper.
  */
-export function formatLeadDate(date: Date, locale: string = "es-CO"): string {
+export function formatLeadDate(date: Date | string | number, locale: string = "es-CO"): string {
+  const d = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
   return new Intl.DateTimeFormat(locale, {
     day:      "2-digit",
     month:    "long",
@@ -12,17 +13,18 @@ export function formatLeadDate(date: Date, locale: string = "es-CO"): string {
     hour:     "2-digit",
     minute:   "2-digit",
     timeZone: "America/Bogota",
-  }).format(date);
+  }).format(d);
 }
 
 /**
  * Versión corta: solo fecha, sin hora.
  * Útil para subjects y resúmenes.
  */
-export function formatLeadDateShort(date: Date, locale: string = "es-CO"): string {
+export function formatLeadDateShort(date: Date | string | number, locale: string = "es-CO"): string {
+  const d = typeof date === "string" || typeof date === "number" ? new Date(date) : date;
   return new Intl.DateTimeFormat(locale, {
     day:   "2-digit",
     month: "long",
     year:  "numeric",
-  }).format(date);
+  }).format(d);
 }

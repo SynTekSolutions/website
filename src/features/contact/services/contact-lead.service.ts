@@ -1,14 +1,18 @@
+import "server-only";
 import crypto from "crypto";
-import { supabase } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { AnalyticsService } from "@/lib/analytics/analytics.service";
 import { NotificationService } from "@/lib/notifications/notification.service";
 import type { LeadPayload } from "@/lib/notifications/channels/notification-channel.interface";
 import type { ContactFormData } from "../validations/contact.schema";
+import { SupabaseContactRepository } from "../repositories/supabase-contact.repository";
+
+const contactRepo = new SupabaseContactRepository();
 
 export interface ContactSubmissionResult {
   success: boolean;
   message: string;
+  leadId?: string;
 }
 
 export interface ClientMetadata {
@@ -17,13 +21,16 @@ export interface ClientMetadata {
   referrer?: string;
 }
 
-export class ContactService {
+/**
+ * Servicio público para procesar la entrada de leads desde la landing page.
+ */
+export class ContactLeadService {
   /**
-   * Persiste el lead en Supabase y dispara las notificaciones.
+   * Persiste el lead en el repositorio de base de datos y dispara las notificaciones.
    *
    * Flujo:
    * 1. Generar id (UUID) y created_at en servidor
-   * 2. INSERT (sin SELECT para evitar violación de políticas RLS de lectura en rol anon)
+   * 2. Insertar en base de datos vía repositorio (usando metadata JSONB)
    * 3. Analytics: contact_form_submitted
    * 4. await NotificationService.notifyNewLead() — awaited, serverless-safe
    * 5. Analytics: confirmation_email_sent (con resultado del envío)
@@ -39,26 +46,24 @@ export class ContactService {
     const createdAt = new Date();
 
     // ── 1. Persistir ──────────────────────────────────────────────────────────
-    const { error } = await supabase
-      .from("contacts")
-      .insert({
-        id:         leadId,
-        name:       data.name,
-        email:      data.email,
-        phone:      data.phone || null,
-        company:    data.company,
-        service:    data.serviceOfInterest,
-        message:    data.message,
-        origin:     "website",
-        ip_address: metadata?.ip || null,
-        user_agent: metadata?.userAgent || null,
-        referrer:   metadata?.referrer || null,
-        created_at: createdAt.toISOString(),
-      });
-
-    if (error) {
-      throw new Error(error.message ?? "Insert failed");
-    }
+    await contactRepo.create({
+      id:         leadId,
+      name:       data.name,
+      email:      data.email,
+      phone:      data.phone || null,
+      company:    data.company,
+      service:    data.serviceOfInterest,
+      message:    data.message,
+      status:     "new",
+      origin:     "website",
+      created_at: createdAt,
+      updated_at: createdAt,
+      metadata: {
+        ip:        metadata?.ip,
+        userAgent: metadata?.userAgent,
+        referrer:  metadata?.referrer,
+      },
+    });
 
     // Log estructurado — facilita trazar la secuencia completa de un lead en Sentry/Axiom
     logger.info("Lead created", {
@@ -113,6 +118,7 @@ export class ContactService {
       success: true,
       message:
         "¡Gracias! Tu consulta ha sido recibida correctamente. Nuestro equipo se pondrá en contacto contigo en menos de 24 horas.",
+      leadId,
     };
   }
 }

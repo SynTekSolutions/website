@@ -6,6 +6,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { SERVICES } from "@/content/services";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { contactSchema, ContactFormData } from "../validations/contact.schema";
 import { submitContactForm } from "../services/contact.client";
 import { AnalyticsService } from "@/lib/analytics/analytics.service";
@@ -19,7 +28,9 @@ export const ContactForm = () => {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
+    watch,
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
@@ -30,6 +41,8 @@ export const ContactForm = () => {
       message: "",
     },
   });
+
+  const serviceOfInterest = watch("serviceOfInterest");
 
   const onSubmit = async (data: ContactFormData) => {
     setErrorMessage(null);
@@ -106,17 +119,13 @@ export const ContactForm = () => {
             <label htmlFor="name" className="text-sm font-semibold text-dark">
               Nombre Completo <span className="text-red-500" aria-hidden="true">*</span>
             </label>
-            <input
+            <Input
               id="name"
-              type="text"
               placeholder="Juan Pérez"
               disabled={isSubmitting}
-              aria-required="true"
+              className="bg-white text-dark border-gray-200 placeholder:text-gray-400 focus-visible:ring-secondary/50 focus-visible:border-secondary/50 dark:bg-white dark:text-dark dark:placeholder:text-gray-400 dark:border-gray-200"
               aria-invalid={errors.name ? "true" : "false"}
               aria-describedby={errors.name ? "name-error" : undefined}
-              className={`w-full px-4 py-3 rounded-lg border text-text bg-white transition-all duration-200 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20 ${
-                errors.name ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 hover:border-gray-300"
-              }`}
               {...register("name")}
             />
             {errors.name && (
@@ -130,17 +139,14 @@ export const ContactForm = () => {
             <label htmlFor="email" className="text-sm font-semibold text-dark">
               Correo de Contacto <span className="text-red-500" aria-hidden="true">*</span>
             </label>
-            <input
+            <Input
               id="email"
               type="email"
               placeholder="juan@empresa.com"
               disabled={isSubmitting}
-              aria-required="true"
+              className="bg-white text-dark border-gray-200 placeholder:text-gray-400 focus-visible:ring-secondary/50 focus-visible:border-secondary/50 dark:bg-white dark:text-dark dark:placeholder:text-gray-400 dark:border-gray-200"
               aria-invalid={errors.email ? "true" : "false"}
               aria-describedby={errors.email ? "email-error" : undefined}
-              className={`w-full px-4 py-3 rounded-lg border text-text bg-white transition-all duration-200 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20 ${
-                errors.email ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 hover:border-gray-300"
-              }`}
               {...register("email")}
             />
             {errors.email && (
@@ -157,17 +163,13 @@ export const ContactForm = () => {
             <label htmlFor="company" className="text-sm font-semibold text-dark">
               Empresa <span className="text-red-500" aria-hidden="true">*</span>
             </label>
-            <input
+            <Input
               id="company"
-              type="text"
               placeholder="Acme Corp"
               disabled={isSubmitting}
-              aria-required="true"
+              className="bg-white text-dark border-gray-200 placeholder:text-gray-400 focus-visible:ring-secondary/50 focus-visible:border-secondary/50 dark:bg-white dark:text-dark dark:placeholder:text-gray-400 dark:border-gray-200"
               aria-invalid={errors.company ? "true" : "false"}
               aria-describedby={errors.company ? "company-error" : undefined}
-              className={`w-full px-4 py-3 rounded-lg border text-text bg-white transition-all duration-200 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20 ${
-                errors.company ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 hover:border-gray-300"
-              }`}
               {...register("company")}
             />
             {errors.company && (
@@ -181,25 +183,19 @@ export const ContactForm = () => {
             <label htmlFor="serviceOfInterest" className="text-sm font-semibold text-dark">
               Servicio de Interés <span className="text-red-500" aria-hidden="true">*</span>
             </label>
-            <select
-              id="serviceOfInterest"
-              disabled={isSubmitting}
-              aria-required="true"
-              aria-invalid={errors.serviceOfInterest ? "true" : "false"}
-              aria-describedby={errors.serviceOfInterest ? "service-error" : undefined}
-              className={`w-full px-4 py-3 rounded-lg border text-text bg-white transition-all duration-200 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20 ${
-                errors.serviceOfInterest ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 hover:border-gray-300"
-              }`}
-              {...register("serviceOfInterest")}
-            >
-              <option value="">Selecciona un servicio...</option>
-              {SERVICES.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.title}
-                </option>
-              ))}
-              <option value="other">Otro requerimiento</option>
-            </select>
+            <Select value={serviceOfInterest} onValueChange={(value) => setValue("serviceOfInterest", value)} disabled={isSubmitting}>
+              <SelectTrigger id="serviceOfInterest" className="w-full bg-white text-dark border-gray-200 dark:bg-white dark:text-dark dark:border-gray-200 [&_span]:text-dark [&_span]:dark:text-dark [&_svg]:text-gray-400 [&_svg]:dark:text-gray-400">
+                <SelectValue placeholder="Selecciona un servicio..." />
+              </SelectTrigger>
+              <SelectContent>
+                {SERVICES.map((service) => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.title}
+                  </SelectItem>
+                ))}
+                <SelectItem value="other">Otro requerimiento</SelectItem>
+              </SelectContent>
+            </Select>
             {errors.serviceOfInterest && (
               <span id="service-error" className="text-xs text-red-600 font-medium" role="alert">
                 {errors.serviceOfInterest.message}
@@ -213,17 +209,14 @@ export const ContactForm = () => {
           <label htmlFor="message" className="text-sm font-semibold text-dark">
             Detalles del Proyecto <span className="text-red-500" aria-hidden="true">*</span>
           </label>
-          <textarea
+          <Textarea
             id="message"
-            rows={4}
             placeholder="Describe brevemente tu objetivo, el alcance y plazo..."
+            rows={4}
             disabled={isSubmitting}
-            aria-required="true"
             aria-invalid={errors.message ? "true" : "false"}
             aria-describedby={errors.message ? "message-error" : undefined}
-            className={`w-full px-4 py-3 rounded-lg border text-text bg-white transition-all duration-200 outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20 resize-none ${
-              errors.message ? "border-red-300 focus:border-red-500 focus:ring-red-500/20" : "border-gray-200 hover:border-gray-300"
-            }`}
+            className="resize-none bg-white text-dark border-gray-200 placeholder:text-gray-400 focus-visible:ring-secondary/50 focus-visible:border-secondary/50 dark:bg-white dark:text-dark dark:placeholder:text-gray-400 dark:border-gray-200"
             {...register("message")}
           />
           {errors.message && (

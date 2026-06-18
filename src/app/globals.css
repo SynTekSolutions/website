@@ -18,6 +18,30 @@
   
   --shadow-premium: 0 4px 30px rgba(0, 0, 0, 0.03);
   --shadow-premium-hover: 0 10px 40px rgba(0, 0, 0, 0.08);
+
+  --animate-accordion-down: accordion-down 0.25s cubic-bezier(0.87, 0, 0.13, 1);
+  --animate-accordion-up: accordion-up 0.25s cubic-bezier(0.87, 0, 0.13, 1);
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+html {
+  scrollbar-gutter: stable;
 }
 
 :root {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import { Suspense } from "react";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { constructMetadata } from "@/config/metadata";
@@ -37,10 +38,12 @@ export default function RootLayout({
         </Suspense>
       </head>
       <body className="min-h-full flex flex-col font-sans bg-white text-text antialiased">
-        <Navbar />
-        <main className="flex-1 flex flex-col">{children}</main>
-        <Footer />
-        <Analytics />
+        <ClerkProvider>
+          <Navbar />
+          <main className="flex-1 flex flex-col">{children}</main>
+          <Footer />
+          <Analytics />
+        </ClerkProvider>
       </body>
     </html>
   );

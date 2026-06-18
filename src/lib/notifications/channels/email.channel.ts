@@ -83,9 +83,11 @@ export class EmailChannel implements NotificationChannel {
       }) as React.ReactElement
     );
 
+    const toEmail = process.env.NODE_ENV === "production" ? payload.email : config.resend.to;
+
     const { error } = await resend.emails.send({
       from:    config.resend.from,
-      to:      payload.email,
+      to:      toEmail,
       subject: EMAIL_SUBJECTS.confirmation(),
       html,
     });

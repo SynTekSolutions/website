@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -17,14 +17,77 @@ model contacts {
   service    String?
   message    String
   source     String?   @default("landing")
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
   status     String    @default("new")
   origin     String?   @default("website")
-  user_agent String?
-  ip_address String?
-  referrer   String?
-  created_at DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @db.Timestamptz(6)
+  metadata   Json      @default("{}")
 
   @@index([status], map: "idx_contacts_status")
   @@index([created_at(sort: Desc)], map: "idx_contacts_created_at")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+enum AuditOperation {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  EXPORT
+  OTHER
+}
+
+model User {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkId        String    @unique @map("clerk_id")
+  email          String    @unique
+  firstName      String?   @map("first_name")
+  lastName       String?   @map("last_name")
+  imageUrl       String?   @map("image_url")
+  role           Role      @default(VIEWER)
+  isActive       Boolean   @default(true) @map("is_active")
+  organizationId String?   @map("organization_id")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@map("users")
+}
+
+model AuditLog {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  actorId        String?        @map("actor_id")
+  actorEmail     String?        @map("actor_email")
+  organizationId String?        @map("organization_id")
+  requestId      String?        @map("request_id")
+  sessionId      String?        @map("session_id")
+  action         String
+  operation      AuditOperation
+  resourceType   String         @map("resource_type")
+  resourceId     String?        @map("resource_id")
+  result         String
+  ipAddress      String?        @map("ip_address")
+  userAgent      String?        @map("user_agent")
+  statusCode     Int?           @map("status_code")
+  errorCode      String?        @map("error_code")
+  errorMessage   String?        @map("error_message")
+  metadata       Json           @default("{}")
+  schemaVersion  Int            @default(1) @map("schema_version")
+  traceId        String?        @map("trace_id")
+  durationMs     Float?         @map("duration_ms")
+
+  @@map("audit_logs")
+  @@index([createdAt(sort: Desc)], map: "idx_audit_logs_created_at")
+  @@index([actorId, createdAt(sort: Desc)], map: "idx_audit_logs_actor_created")
+  @@index([organizationId, createdAt(sort: Desc)], map: "idx_audit_logs_org_created")
+  @@index([action], map: "idx_audit_logs_action")
+  @@index([resourceType, resourceId], map: "idx_audit_logs_resource")
 }
