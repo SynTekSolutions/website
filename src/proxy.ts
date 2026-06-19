@@ -17,7 +17,7 @@ const clerk = clerkMiddleware(async (auth, req) => {
   }
 })
 
-export default async function middleware(req: NextRequest, event: any) {
+export default async function middleware(req: NextRequest, event: unknown) {
   const isMockEnabled =
     process.env.E2E_MOCK_ENABLED === "true" &&
     (process.env.NODE_ENV !== "production" || process.env.PLAYWRIGHT_TEST_ENV === "true");
