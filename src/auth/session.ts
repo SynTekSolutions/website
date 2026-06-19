@@ -24,6 +24,8 @@ export async function getSession(): Promise<DomainSession | null> {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Simulated session expiry
       };
     }
+    
+    return null;
   }
 
   const { userId, sessionId } = await auth();

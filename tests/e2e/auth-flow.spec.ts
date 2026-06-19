@@ -464,7 +464,7 @@ test.describe("PR 8: CRM E2E Tests", () => {
     expect(currentUrl).toContain("redirect_url=%2Fadmin%2Fleads%3Fpage%3D1%26status%3Dnew");
   });
 
-  test("Test 12: Open Redirect mitigation validates and sanitizes redirect_url", async ({ page, context }) => {
+  test("Test 12: Open Redirect mitigation validates and sanitizes redirect_url", async ({ page }) => {
     // Make sure mock_admin_user exists in DB
     await prisma.user.upsert({
       where: { clerkId: "mock_admin_user" },

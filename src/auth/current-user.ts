@@ -24,12 +24,16 @@ export class ClerkAuthProvider implements AuthProvider {
       const cookiesList = await cookies();
       userId = headersList.get("x-mock-user-id") || cookiesList.get("x-mock-user-id")?.value || null;
       sessionId = headersList.get("x-mock-session-id") || cookiesList.get("x-mock-session-id")?.value || "mock-session-123";
-    }
-
-    if (!userId) {
-      const clerkAuth = await auth();
-      userId = clerkAuth.userId;
-      sessionId = clerkAuth.sessionId;
+      
+      if (!userId) {
+        return null;
+      }
+    } else {
+      if (!userId) {
+        const clerkAuth = await auth();
+        userId = clerkAuth.userId;
+        sessionId = clerkAuth.sessionId;
+      }
     }
 
     if (!userId) {
