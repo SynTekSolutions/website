@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import type { NextRequest, NextFetchEvent } from 'next/server'
 
 const isProtectedRoute = createRouteMatcher([
   '/admin(.*)',
@@ -17,7 +17,7 @@ const clerk = clerkMiddleware(async (auth, req) => {
   }
 })
 
-export default async function middleware(req: NextRequest, event: unknown) {
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
   const isMockEnabled =
     process.env.E2E_MOCK_ENABLED === "true" &&
     (process.env.NODE_ENV !== "production" || process.env.PLAYWRIGHT_TEST_ENV === "true");
