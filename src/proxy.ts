@@ -1,4 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
 const isProtectedRoute = createRouteMatcher([
   '/admin(.*)',
@@ -9,26 +11,37 @@ const isWebhookRoute = createRouteMatcher([
   '/api/webhooks/clerk(.*)'
 ])
 
-export default clerkMiddleware(async (auth, req) => {
-  const isMockEnabled =
-    process.env.E2E_MOCK_ENABLED === "true" &&
-    (process.env.NODE_ENV !== "production" || process.env.PLAYWRIGHT_TEST_ENV === "true");
-  const mockUserId = req.headers.get("x-mock-user-id") || req.cookies.get("x-mock-user-id")?.value;
-
-  if (isMockEnabled && mockUserId) {
-    return;
-  }
-
+const clerk = clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req) && !isWebhookRoute(req)) {
     await auth.protect()
   }
 })
 
+export default async function middleware(req: NextRequest, event: any) {
+  const isMockEnabled =
+    process.env.E2E_MOCK_ENABLED === "true" &&
+    (process.env.NODE_ENV !== "production" || process.env.PLAYWRIGHT_TEST_ENV === "true");
+
+  if (isMockEnabled) {
+    const mockUserId = req.headers.get("x-mock-user-id") || req.cookies.get("x-mock-user-id")?.value;
+    const isProtected = isProtectedRoute(req) && !isWebhookRoute(req);
+
+    if (isProtected && !mockUserId) {
+      const redirectUrl = new URL('/sign-in', req.url);
+      redirectUrl.searchParams.set('redirect_url', req.nextUrl.pathname + req.nextUrl.search);
+      return NextResponse.redirect(redirectUrl);
+    }
+    return NextResponse.next();
+  }
+
+  return clerk(req, event);
+}
+
 export const config = {
   matcher: [
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for Clerk's auto-proxy path
     '/__clerk/:path*',
     '/(api|trpc)(.*)',
   ],
 }
+
